@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import datetime
 import os
 import json
 import sqlite3
@@ -12,6 +13,15 @@ def set_default(obj):
     if isinstance(obj, set):
         return list(obj)
     raise TypeError
+    
+def parse_imessage_date(date):
+    """The 'date' fields count seconds from the first second of 1 Jan 2001, the
+    first time which can be represented with NSDate. We turn this into a more
+    human-friendly string.
+    """
+    startdate = datetime.datetime(2001, 01, 01, 00, 00, 00)
+    enddate   = startdate + datetime.timedelta(seconds=date)
+    return enddate.strftime("%Y-%m-%d %X")
 
 # Construct a dictionary of addresses. Here an "address" is a phone number or
 # email address, used to identify different recipients.
@@ -27,15 +37,32 @@ for row in get_sql_table(conn, 'handle'):
 messages = dict()
 for row in get_sql_table(conn, 'message'):
     messages[row[0]] = dict({
-        "text":        row[1],
+        "text":        row[2],
         "address_id":  row[5],
         "subject":     row[6],
         "country":     row[7],
         "service":     row[11],
-        "date":        row[15],
-        "from_me":     bool(row[21]),
+        "date":        parse_imessage_date(row[15]),
+        "is_from_me":  bool(row[21]),
         "attachments": list()
     })
+
+# Construct a dictionary of attachments
+attachments = dict()
+for row in get_sql_table(conn, 'attachment'):
+    attachments[row[0]] = dict({
+        "date":          parse_imessage_date(row[2]),
+        "filename":      row[4],
+        "mime_type":     row[6],
+        "is_outgoing":   bool(row[8]),
+        "transfer_name": row[10]
+    })
+
+# Populate each message with associated attachments
+for row in get_sql_table(conn, 'message_attachment_join'):
+    msg_id    = row[0]
+    attach_id = row[1]
+    messages[msg_id]["attachments"].append(attachments.pop(attach_id, {}))
 
 # Construct a dictionary of distinct message threads. Each thread has two
 # attributes: participants and messages.
