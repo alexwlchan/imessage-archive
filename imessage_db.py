@@ -6,10 +6,29 @@ extracting useful information into Python objects.
 
 import datetime
 import json
+import os
+
+# Utility functions
 
 def __get_table_from_sql_db(conn, table):
+    """Wrapper around SQL queries."""
     return conn.execute('SELECT * from %s' % table)
-    
+
+def setdefault(obj):
+    """Convert sets to lists so they can be exported as JSON."""
+    if isinstance(obj, set):
+        return list(obj)
+    raise TypeError
+
+def next_free_id(mydict, start=1):
+    """Given a dictionary whose keys are positive integers, find the next p
+    positive integer which is not a key in the dictionary.
+    """
+    key = start
+    while key in mydict:
+        key += 1
+    return key
+
 def parse_imessage_date(date):
     """The 'date' fields count seconds from the first second of 1 Jan 2001, the
     first time which can be represented with NSDate. We turn this into a more
@@ -40,7 +59,7 @@ def __get_message_table(conn):
             "subject":     row[6],
             "country":     row[7],
             "service":     row[11],
-            "date":        parse_imessage_date(row[15]),
+            "date":        row[15],
             "is_from_me":  bool(row[21]),
             "attachments": list()
         })
@@ -54,7 +73,7 @@ def __get_attachment_table(conn):
     attachments = dict()
     for row in __get_table_from_sql_db(conn, 'attachment'):
         attachments[row[0]] = dict({
-            "date":          parse_imessage_date(row[2]),
+            "date":          row[2],
             "filename":      row[4],
             "mime_type":     row[6],
             "is_outgoing":   bool(row[8]),
@@ -86,7 +105,7 @@ def __get_chat_table(conn):
     # discarded immediately.
     for row in __get_table_from_sql_db(conn, 'chat'):
         chats[row[0]] = dict({
-            "handles":  list(),
+            "handles":  set(),
             "messages": list(),
         })
 
@@ -95,7 +114,7 @@ def __get_chat_table(conn):
     for row in __get_table_from_sql_db(conn, 'chat_handle_join'):
         chat_id   = row[0]
         handle_id = row[1]
-        chats[chat_id]["handles"].append(handles[handle_id])
+        chats[chat_id]["handles"].add(handles[handle_id])
     
     return chats
 
@@ -113,3 +132,61 @@ def get_messages_by_chat(conn):
         chats[chat_id]["messages"].append(messages.pop(msg_id, {}))
     
     return chats
+
+def __deduplicate_handles(chats):
+    """Sometimes, two different chats will have the same set of recipients. This
+    is because chats via iMessage and chats via SMS are counted separately.
+    
+    This method assumes that messages in the database are unique (so they
+    originate from the same SQL file, or have already been deduplicated).
+    """
+    chat_ids = list(chats)
+    while chat_ids:
+        next_id = chat_ids.pop()
+        print chats[next_id]["handles"]
+        for cid in chat_ids:
+            if chats[cid]["handles"] == chats[next_id]["handles"]:
+                all_msgs = chats[cid]["messages"] + chats[next_id]["messages"] 
+                chats[cid]["messages"] = all_msgs
+                chats.pop(next_id)
+                break
+    return chats
+
+def __merge_messages(original, update):
+    """When two databases get merged, we have two lists of message dicts, which
+    may overlap (if we were upgrading the JSON database, say). This function
+    creates a single list of messages which are unique."""
+    orig_set = set([tuple(d.items()) for d in original])
+    
+    for msg in update:
+        if tuple(msg.items()) not in orig_set:
+            original.append(msg)
+    
+    return original
+
+def __merge_chats(original, update):
+    orig_handles = set([tuple(d["handles"]) for d["handles"] in original])
+    
+    
+    next_id = 1
+    for chat in update:
+        if tuple(chat["handles"]) not in orig_set:
+            next_id = next_free_id(original, next_id)
+            original[next_id] = chat
+        else:
+            orig_id = [k for k, v in original.iteritems() \
+                if v["handles"] == chat["handles"]][0]
+            original[orig_id]["messages"] = __merge_messages(original[orig_id]["messages"], chat["messages"])
+
+    return original 
+
+def export_messages_to_json(chats, chatdir):
+    """Export every chat into a single JSON file in a 'chats' directory, with
+    the chat ID serving as a unique identifier of chats.
+    """
+    if not os.path.isdir(chatdir):
+        os.mkdir(chatdir)
+    for idx, chat in chats.itervalues():
+        with open(os.path.join(chatdir, 'chat_%d.json' % idx), 'w') as outfile:
+            json.dump(chat, outfile, default=setdefault)
+    
