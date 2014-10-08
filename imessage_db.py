@@ -143,7 +143,6 @@ def __deduplicate_handles(chats):
     chat_ids = list(chats)
     while chat_ids:
         next_id = chat_ids.pop()
-        print chats[next_id]["handles"]
         for cid in chat_ids:
             if chats[cid]["handles"] == chats[next_id]["handles"]:
                 all_msgs = chats[cid]["messages"] + chats[next_id]["messages"] 
@@ -152,41 +151,14 @@ def __deduplicate_handles(chats):
                 break
     return chats
 
-def __merge_messages(original, update):
-    """When two databases get merged, we have two lists of message dicts, which
-    may overlap (if we were upgrading the JSON database, say). This function
-    creates a single list of messages which are unique."""
-    orig_set = set([tuple(d.items()) for d in original])
-    
-    for msg in update:
-        if tuple(msg.items()) not in orig_set:
-            original.append(msg)
-    
-    return original
-
-def __merge_chats(original, update):
-    orig_handles = set([tuple(d["handles"]) for d["handles"] in original])
-    
-    
-    next_id = 1
-    for chat in update:
-        if tuple(chat["handles"]) not in orig_set:
-            next_id = next_free_id(original, next_id)
-            original[next_id] = chat
-        else:
-            orig_id = [k for k, v in original.iteritems() \
-                if v["handles"] == chat["handles"]][0]
-            original[orig_id]["messages"] = __merge_messages(original[orig_id]["messages"], chat["messages"])
-
-    return original 
-
 def export_messages_to_json(chats, chatdir):
-    """Export every chat into a single JSON file in a 'chats' directory, with
-    the chat ID serving as a unique identifier of chats.
+    """Export every chat into a single JSON file in chatdir, with the chat ID
+    serving as a unique identifier of chats.
     """
     if not os.path.isdir(chatdir):
         os.mkdir(chatdir)
-    for idx, chat in chats.itervalues():
-        with open(os.path.join(chatdir, 'chat_%d.json' % idx), 'w') as outfile:
+    chats = __deduplicate_handles(chats)
+    for idx, chat in chats.iteritems():
+        with open(os.path.join(chatdir, 'chat_%s.json' % str(idx)), 'w') as outfile:
             json.dump(chat, outfile, default=setdefault)
     
