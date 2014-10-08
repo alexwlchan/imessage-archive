@@ -4,7 +4,7 @@ Functions for taking an iMessage database (usually sms.db or chat.db), and
 extracting useful information into Python objects.
 """
 
-import datetime
+import dates
 import json
 import os
 
@@ -29,15 +29,6 @@ def next_free_id(mydict, start=1):
         key += 1
     return key
 
-def parse_imessage_date(date):
-    """The 'date' fields count seconds from the first second of 1 Jan 2001, the
-    first time which can be represented with NSDate. We turn this into a more
-    human-friendly string.
-    """
-    startdate = datetime.datetime(2001, 01, 01, 00, 00, 00)
-    enddate   = startdate + datetime.timedelta(seconds=date)
-    return enddate.strftime("%Y-%m-%d %X")
-
 def __get_handle_table(conn):
     """Individual recipients are stored in the 'handle' table. We pick out
     the relevant information and store it in a dictionary."""
@@ -60,7 +51,7 @@ def __get_message_table(conn):
             "subject":     row[6],
             "country":     row[7],
             "service":     row[11],
-            "date":        row[15],
+            "date":        dates.imessage_date_str(row[15]),
             "is_from_me":  bool(row[21]),
             "attachments": list()
         })
@@ -163,9 +154,9 @@ def export_messages_to_json(chats, chatdir):
     
     for idx, chat in chats.iteritems():
         with open(os.path.join(chatdir, 'chat_%s.json' % str(idx)), 'w') as outfile:
-            json.dump(chat, outfile, default=setdefault)
+            json.dump(chat, outfile, default=setdefault, indent=4)
         handles[idx] = chat["handles"]
         
     with open(os.path.join(chatdir, 'handles.json'), 'w') as outfile:
-        json.dump(handles, outfile, default=setdefault)
+        json.dump(handles, outfile, default=setdefault, indent=4)
     
