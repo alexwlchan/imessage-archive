@@ -1,0 +1,12 @@
+body {
+  font: 14pt Avenir, Helvetica, Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+.header {
+  text-align: center;
+  font-weight: bold;
+  font-size: 1.2em;
+  background-color: #ff0000;
+}

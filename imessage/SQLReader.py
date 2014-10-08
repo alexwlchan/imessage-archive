@@ -51,11 +51,12 @@ def __get_message_table(conn):
     information from this table. This isn't everything: we also need information
     about attachments, in a different table.
     """
+    handles  = __get_handle_table(conn)
     messages = dict()
     for row in __get_table_from_sql_db(conn, 'message'):
         messages[row[0]] = dict({
             "text":        row[2],
-            "address_id":  row[5],
+            "handle":      handles.get(row[5], ''),
             "subject":     row[6],
             "country":     row[7],
             "service":     row[11],
@@ -157,8 +158,14 @@ def export_messages_to_json(chats, chatdir):
     """
     if not os.path.isdir(chatdir):
         os.mkdir(chatdir)
-    chats = __deduplicate_handles(chats)
+    chats   = __deduplicate_handles(chats)
+    handles = dict()
+    
     for idx, chat in chats.iteritems():
         with open(os.path.join(chatdir, 'chat_%s.json' % str(idx)), 'w') as outfile:
             json.dump(chat, outfile, default=setdefault)
+        handles[idx] = chat["handles"]
+        
+    with open(os.path.join(chatdir, 'handles.json'), 'w') as outfile:
+        json.dump(handles, outfile, default=setdefault)
     
