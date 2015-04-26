@@ -1,6 +1,16 @@
 imessage-archive
 ================
 
+**Note, 26 Apr 2015:** I rather let this languish, didn't I?
+
+Since I'm stuck in bed for the next few weeks, I'm going to dust this off and see if I can't get it working properly. (Also, my Mac just erased two years of messages, so the merging stuff would be *really* nice.)
+
+Plus, I have a slightly less crappy understanding of SQL now, so the code will be less awful.
+
+New work is going on in the apr15 branch, but I'll eventually merge back to master when I have something working. :-)
+
+---
+
 Scripts for parsing the iOS message database.
 
 Messages.app on OS X and iOS both store their messages databases in SQL (`chat.db` and `sms.db`, respectively). This is a handful of scripts which extract the messages from the SQL into human-readable JSON, and try to organise the attachments in a sensible way.
