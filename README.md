@@ -11,13 +11,13 @@ imessage-archive
 
     ```json
     {
-        'is_from_me': 0,
-        'text': None,
-        'handle_id': 0,
-        'ROWID': 63490,
-        'date': '2015-01-03 10:28:05',
-        'guid': u'E23C4C7A-BA37-4609-9FB1-E728EAC28CFD',
-        'item_type': 2
+        "is_from_me": 0,
+        "text": None,
+        "handle_id": 0,
+        "ROWID": 63490,
+        "date": "2015-01-03 10:28:05",
+        "guid": "E23C4C7A-BA37-4609-9FB1-E728EAC28CFD",
+        "item_type": 2
     }
     ```
 
@@ -29,7 +29,9 @@ imessage-archive
     *   2: renaming a group chat
     *   5: audio message
 
-    I couldn't find
+    I couldn't find a reference for what these values mean.
+
+    There's a similarly obscure `type` field that I haven't been able to work out yet.
 
 ## Open questions
 
