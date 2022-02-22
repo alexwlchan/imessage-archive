@@ -15,7 +15,11 @@ Scripts for parsing the iOS message database.
 
 Messages.app on OS X and iOS both store their messages databases in SQL (`chat.db` and `sms.db`, respectively). This is a handful of scripts which extract the messages from the SQL into human-readable JSON, and try to organise the attachments in a sensible way.
 
-It requires two files from: `filesequence.py` and `confirmation.py`. So far the attachments functionality only really works with the OS X database, but I will add iOS support (eventually).
+It requires two files from: `filesequence.py` and `confirmation.py`.
+[Note: these files were originally kept in an external repository.
+I don’t know how closely they resemble the versions I was using when I originally wrote the iMessage parsing code, but they should give you the general gist.]
+
+So far the attachments functionality only really works with the OS X database, but I will add iOS support (eventually).
 
 Planned improvements:
 
